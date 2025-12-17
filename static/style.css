@@ -1,0 +1,233 @@
+/* 🌤 Toàn trang */
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(135deg, #eef2f7, #e0e7ff);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+/* 💬 Khung chat chính */
+.chat-container {
+  width: 85%;
+  max-width: 1100px;
+  height: 90vh;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 22px;
+}
+
+/* 🪟 Khung hiển thị tin nhắn */
+#chat-box {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 14px;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
+}
+
+/* 🌈 Thanh cuộn */
+#chat-box::-webkit-scrollbar {
+  width: 8px;
+}
+#chat-box::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 10px;
+}
+#chat-box::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}
+
+/* 💬 Cấu trúc tin nhắn */
+.chat-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 👤 Ảnh đại diện */
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  object-fit: cover;
+}
+
+/* 🗨️ Bong bóng tin nhắn */
+.msg-bubble {
+  padding: 12px 15px;
+  border-radius: 16px;
+  max-width: 70%;
+  box-shadow: inset 0 0 8px rgba(255,255,255,0.4),
+              0 4px 12px rgba(0,0,0,0.1);
+  font-size: 15px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+/* 👨 Tin nhắn người dùng */
+.user-msg {
+  justify-content: flex-end;
+}
+.user-msg .msg-bubble {
+  background: linear-gradient(145deg, #d7f0ff, #b3e5fc);
+  color: #003d66;
+  border-radius: 16px 16px 0 16px;
+}
+.user-msg .avatar {
+  order: 2;
+}
+
+/* 🤖 Tin nhắn bot */
+.bot-msg {
+  justify-content: flex-start;
+}
+.bot-msg .msg-bubble {
+  background: linear-gradient(145deg, #e7ffe7, #ccffcc);
+  color: #1e4620;
+  border-radius: 16px 16px 16px 0;
+  box-shadow: inset 0 0 12px rgba(255,255,255,0.5),
+              0 3px 10px rgba(0,0,0,0.1);
+}
+
+/* ✨ Khu hiển thị sách */
+.book-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+/* 📚 Thẻ sách */
+.product-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  width: 220px;
+  padding: 12px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+}
+
+.product-card h3 {
+  color: #2a4d8f;
+  font-size: 16px;
+  margin: 8px 0;
+  font-weight: 600;
+}
+
+.product-card p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #555;
+}
+
+/* 🔗 Link wiki */
+.wiki-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+.wiki-link:hover {
+  text-decoration: underline;
+}
+
+/* 🖼 Ảnh sách */
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.product-img {
+  width: 180px;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* 📊 Biểu đồ */
+.chart-wrapper {
+  width: 100%;
+  height: 350px;
+  margin-top: 15px;
+}
+
+/* ⌨️ Ô nhập tin nhắn */
+.input-container {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+#user-input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#user-input:focus {
+  border-color: #007bff;
+}
+
+/* 🔘 Nút gửi */
+button {
+  padding: 12px 20px;
+  border: none;
+  background: #007bff;
+  color: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+button:hover {
+  background: #0056b3;
+  transform: scale(1.05);
+}
+
+/* 💨 Hiệu ứng xuất hiện */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

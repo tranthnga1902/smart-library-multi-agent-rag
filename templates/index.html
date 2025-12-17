@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🤖 Multi-Agent Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="chat-container">
+    <h2>🤖 Multi-Agent Chatbot</h2>
+
+    <div id="chat-box"></div>
+
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Nhập câu hỏi...">
+        <button onclick="sendMessage()">Gửi</button>
+    </div>
+</div>
+
+<script>
+async function sendMessage() {
+    const input = document.getElementById("user-input");
+    const message = input.value.trim();
+    if (!message) return;
+
+    const chatBox = document.getElementById("chat-box");
+    chatBox.insertAdjacentHTML("beforeend", `
+        <div class="chat-msg user-msg">
+            <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="avatar">
+            <div class="msg-bubble">${message}</div>
+        </div>
+    `);
+    input.value = "";
+
+    try {
+        const response = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+        let formatted = "";
+        let rawText = data.output || "";
+
+        if (data.results && data.results.agent5) {
+            rawText += "\n\n" + data.results.agent5;
+        }
+
+        // 🖼 1️⃣ Tạm thay ảnh bằng placeholder đặc biệt
+        const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif))/gi;
+        const images = [];
+        rawText = rawText.replace(imageRegex, (url) => {
+            const marker = `[[IMG_${images.length}]]`;
+            images.push(
+                `<div class="image-container"><img src="${url}" class="product-img" referrerpolicy="no-referrer" onerror="this.style.display='none';"></div>`
+            );
+            return marker;
+        });
+
+        // 🔗 2️⃣ Thay link text (nhưng bỏ qua placeholder ảnh)
+        const linkRegex = /(https?:\/\/[^\s]+)/gi;
+        rawText = rawText.replace(linkRegex, (url) => {
+            if (url.includes("[[IMG_")) return url; // bỏ qua ảnh
+            return `<a href="${url}" target="_blank" class="wiki-link">${url}</a>`;
+        });
+
+        // 🧩 3️⃣ Khôi phục ảnh vào vị trí placeholder
+        images.forEach((imgHTML, index) => {
+            rawText = rawText.replace(`[[IMG_${index}]]`, imgHTML);
+        });
+
+        // ✨ 4️⃣ Format markdown nhẹ
+        rawText.split("\n").forEach(line => {
+            line = line.trim();
+            if (!line) return;
+
+            if (line.startsWith("**") && line.endsWith("**")) {
+                formatted += `<h3>${line.replace(/\*\*/g, "").trim()}</h3>`;
+            } else if (line.includes("**")) {
+                formatted += `<p>${line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")}</p>`;
+            } else {
+                formatted += `<p>${line}</p>`;
+            }
+        });
+
+        // 💬 5️⃣ Thêm tin nhắn bot
+        chatBox.insertAdjacentHTML("beforeend", `
+            <div class="chat-msg bot-msg">
+                <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="avatar">
+                <div class="msg-bubble">${formatted}</div>
+            </div>
+        `);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+    } catch (error) {
+        console.error("❌ Lỗi gửi yêu cầu:", error);
+        chatBox.insertAdjacentHTML("beforeend", `
+            <div class="chat-msg bot-msg">
+                <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="avatar">
+                <div class="msg-bubble">⚠️ Lỗi khi kết nối đến server.</div>
+            </div>
+        `);
+    }
+}
+</script>
+
+
+
+</body>
+</html>
