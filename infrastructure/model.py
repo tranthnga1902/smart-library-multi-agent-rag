@@ -6,9 +6,13 @@ from typing import TypedDict
 # ======================
 # Gemini API config
 # ======================
-#genai.configure(api_key="YOUR_GOOGLE_API_KEY")
-genai.configure(api_key="YOUR_GOOGLE_API_KEY")
-model = genai.GenerativeModel("models/gemini-2.5-flash")
+
+API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if not API_KEY:
+    print("❌ Lỗi: Chưa cấu hình GOOGLE_API_KEY trong biến môi trường!")
+else:
+    genai.configure(api_key=API_KEY)model = genai.GenerativeModel("gemini-3-flash-preview")
 import regex as re
 import json, requests  # ⚠️ bỏ chữ "re" ở đây
 
