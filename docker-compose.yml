@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16 
+    container_name: booksdb_container
+    ports:
+      - "5433:5432" # Ánh xạ port 5433 máy thật vào 5432 máy ảo
+    environment:
+      POSTGRES_DB: booksdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d # Nơi chứa file backup để tự động nạp dữ liệu
+
+volumes:
+  postgres_data:
