@@ -4,7 +4,13 @@ from bs4 import BeautifulSoup
 import google.generativeai as genai
 
 # Cấu hình Gemini API
-API_KEY = os.getenv("GOOGLE_API_KEY", "YOUR_GOOGLE_API_KEY")
+API_KEY = os.getenv("GOOGLE_API_KEY")
+
+
+# --- 2. CẤU HÌNH GEMINI ---
+if not API_KEY:
+    raise ValueError("❌ LỖI: GOOGLE_API_KEY không được tìm thấy trong biến môi trường!")
+
 genai.configure(api_key=API_KEY)
 embedding_model_name = "models/text-embedding-004"
 fixed_vector_size = 1024
@@ -120,4 +126,5 @@ with open("Data2_merged_clean.csv", "r", encoding="utf-8") as f:
 conn.commit()
 cur.close()
 conn.close()
+
 
