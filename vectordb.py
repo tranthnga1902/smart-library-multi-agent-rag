@@ -10,14 +10,14 @@ embedding_model_name = "models/text-embedding-004"
 fixed_vector_size = 1024
 
 # Kết nối Postgres trong Docker container
+# Kết nối Postgres (Sửa lại đoạn này)
 conn = psycopg2.connect(
-    host="localhost",
-    port=5433,
-    dbname="booksdb",
-    user="postgres",
-    password="123456"
+    host=os.getenv("DB_HOST", "localhost"), # Lấy từ Docker (db), nếu chạy máy ngoài thì dùng localhost
+    port=os.getenv("DB_PORT", 5433),         # Lấy 5432 từ Docker hoặc 5433 từ máy ngoài
+    dbname=os.getenv("DB_NAME", "booksdb"),
+    user=os.getenv("DB_USER", "postgres"),
+    password=os.getenv("DB_PASS", "123456")
 )
-
 cur = conn.cursor()
 
 # Tạo extension vector nếu chưa có
@@ -120,3 +120,4 @@ with open("Data2_merged_clean.csv", "r", encoding="utf-8") as f:
 conn.commit()
 cur.close()
 conn.close()
+
