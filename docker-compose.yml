@@ -1,16 +1,31 @@
 services:
+  # Cấu hình Database
   db:
-    image: pgvector/pgvector:pg16 
+    image: pgvector/pgvector:pg16
     container_name: booksdb_container
     ports:
-      - "5433:5432" # Ánh xạ port 5433 máy thật vào 5432 máy ảo
+      - "5433:5432"
     environment:
       POSTGRES_DB: booksdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "123456"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d # Nơi chứa file backup để tự động nạp dữ liệu
+
+  # Cấu hình App Python
+  app:
+    build: .
+    container_name: python_app
+    depends_on:
+      - db
+    environment:
+      # Lưu ý: Trong Docker, thay "localhost" bằng "db"
+      DB_HOST: db  
+      DB_PORT: 5432
+      DB_NAME: booksdb
+      DB_USER: postgres
+      DB_PASS: "123456"
+      GEMINI_API_KEY: "YOUR_API_KEY_HERE"
 
 volumes:
   postgres_data:
