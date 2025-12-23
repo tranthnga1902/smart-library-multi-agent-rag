@@ -1,0 +1,21 @@
+# --- Core Frameworks ---
+flask
+flasgger
+google-generativeai
+langgraph
+
+# --- Database & Vector ---
+psycopg2-binary
+numpy
+
+# --- Web Scraping & API ---
+requests
+beautifulsoup4
+
+# --- Visualization ---
+seaborn
+matplotlib
+
+# --- Utilities ---
+regex
+python-dotenv
