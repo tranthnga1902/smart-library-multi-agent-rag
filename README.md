@@ -143,7 +143,8 @@ matplotlib
 
 Hệ thống được thiết kế theo **Layered Architecture (4 tầng)**, đảm bảo **tách biệt trách nhiệm** và **dễ mở rộng**.
 
----
+---<img width="1884" height="1364" alt="image" src="https://github.com/user-attachments/assets/001d7188-8424-4bc0-b935-c1651d0d7fef" />
+
 
 ## 1️⃣ Controller Layer (Giao diện & Entry Point)
 
