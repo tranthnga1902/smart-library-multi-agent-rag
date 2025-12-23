@@ -26,12 +26,16 @@ def get_local_ip():
 # =========================
 # CẤU HÌNH POSTGRES & GEMINI
 # =========================
+# =========================
+import os
+
+# Lấy cấu hình từ biến môi trường (Docker truyền vào)
 DB_CONFIG = {
-    "host": "localhost",
-    "port": 5433,
-    "dbname": "booksdb",
-    "user": "postgres",
-    "password": "123456"
+    "host": os.getenv("DB_HOST", "db"),
+    "port": os.getenv("DB_PORT", "5432"),
+    "dbname": os.getenv("DB_NAME", "booksdb"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASS", "123456")
 }
 
 
