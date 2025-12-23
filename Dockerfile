@@ -1,15 +1,19 @@
-# Sử dụng Python bản nhẹ
 FROM python:3.10-slim
 
-# Thiết lập thư mục làm việc trong container
+# Cài đặt thư viện hệ thống cần cho psycopg2
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copy file requirements và cài đặt thư viện
+# Copy và cài đặt thư viện
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy toàn bộ code vào container
+# Copy toàn bộ dữ liệu (bao gồm file Data2_merged_clean.csv)
 COPY . .
 
-# Chạy ứng dụng
-CMD ["python", "app.py"]
+# Chạy file nạp dữ liệu
+CMD ["python", "vectordb.py"]
