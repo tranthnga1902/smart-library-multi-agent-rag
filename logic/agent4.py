@@ -1,20 +1,11 @@
-import json, re, requests
+import json, re
 from infrastructure.model import ask_agent4
+from infrastructure.books import fetch_all_books
 
 
 # =========================
 # Lấy danh sách tất cả sách
 # =========================
-def fetch_all_books(api_url="http://127.0.0.1:5000/all_books"):
-    try:
-        resp = requests.get(api_url, timeout=10)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        print(f"❌ Lỗi khi fetch sách: {e}")
-        return []
-
-
 # =========================
 # Trích xuất thông tin sách gần đúng nhất
 # =========================
@@ -53,9 +44,21 @@ def ask_question4(user_question: str):
     """
     Trả về list thông tin sách đầy đủ (metadata) để agent4_node hiển thị.
     """
-    books = fetch_all_books()
+    try:
+        books = fetch_all_books()
+    except Exception as e:
+        print(f"❌ Lỗi khi fetch sách: {e}")
+        return {"error": "❌ Không lấy được danh sách sách từ database."}
     if not books:
         return {"error": "❌ Không lấy được danh sách sách từ API."}
+
+    exact = [book for book in books if (book.get("book_name") or "").strip().casefold() == user_question.strip().casefold()]
+    if exact:
+        return exact
+
+    mentioned = [book for book in books if (book.get("book_name") or "").strip().casefold() in user_question.casefold()]
+    if mentioned:
+        return mentioned[:5]
 
     extracted_books = find_closest_book_name(user_question, books)
     if not extracted_books:

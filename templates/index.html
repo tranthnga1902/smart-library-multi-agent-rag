@@ -19,6 +19,7 @@
 </div>
 
 <script>
+let currentBookName = null;
 async function sendMessage() {
     const input = document.getElementById("user-input");
     const message = input.value.trim();
@@ -37,10 +38,11 @@ async function sendMessage() {
         const response = await fetch("/ask", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, book_name: currentBookName })
         });
 
         const data = await response.json();
+        if (data.book_name) currentBookName = data.book_name;
         let formatted = "";
         let rawText = data.output || "";
 

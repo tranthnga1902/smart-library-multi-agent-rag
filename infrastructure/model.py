@@ -1,18 +1,8 @@
-import google.generativeai as genai
+from infrastructure.openai_client import generate_text, embed_texts, EMBEDDING_MODEL, VECTOR_SIZE
 import seaborn as sns
 import matplotlib.pyplot as plt
 from langgraph.graph import StateGraph, END
 from typing import TypedDict
-# ======================
-# Gemini API config
-# ======================
-
-API_KEY = os.getenv("GOOGLE_API_KEY")
-
-if not API_KEY:
-    print("❌ Lỗi: Chưa cấu hình GOOGLE_API_KEY trong biến môi trường!")
-else:
-    genai.configure(api_key=API_KEY)model = genai.GenerativeModel("gemini-3-flash-preview")
 import regex as re
 import json, requests  # ⚠️ bỏ chữ "re" ở đây
 
@@ -27,29 +17,36 @@ def ask_router(prompt: str) -> str:
 Chỉ trả về một trong các giá trị chính xác (không thêm gì khác):
 - agent4
 - agent4,agent5
+- context4
+- context45
 - none
 ---
 """
     try:
         full = guard_prefix.strip() + "\n\n" + prompt.strip()
-        resp = model.generate_content(full)
-        text = resp.text.strip().lower()
+        resp = generate_text(full)
+        text = resp.strip().lower()
         # làm sạch: chỉ giữ chữ thường, số, dấu phẩy
         text = re.sub(r"[^a-z0-9,]", "", text)
-        if text in ("agent4","agent4agent5","agent4,agent5"):
-            # chuẩn hóa "agent4agent5" -> "agent4,agent5"
-            return "agent4,agent5" if "agent5" in text and "agent4" in text else text
+        if text in ("agent4", "agent4,agent5", "agent4agent5", "context4", "context45"):
+            return "agent4,agent5" if text == "agent4agent5" else text
         return "none"
     except Exception as e:
         print("❌ ask_router error:", e)
         return "none"
 
 prompt1 = """
-Bạn là Trưởng nhóm điều phối. Người dùng hỏi: "{user_input}"
-Nếu họ muốn nội dung/tóm tắt -> trả về "agent4,agent5".
-Nếu họ chỉ muốn metadata (tác giả, năm, thể loại, ảnh, wiki) -> trả về "agent4".
-Nếu ngoài phạm vi sách -> trả về "none".
-Chỉ trả một trong 3 giá trị, không giải thích thêm.
+Bạn điều phối câu hỏi cho hệ thống sách.
+Sách đang xem trong cuộc trò chuyện: {current_book}
+Câu hỏi mới: {user_input}
+
+Xác định ý định theo ngữ nghĩa, không dựa vào từ khóa cố định:
+- Nếu câu hỏi tiếp nối về sách đang xem và cần nội dung, diễn biến, nhân vật, lý do hay giải thích: context45.
+- Nếu câu hỏi tiếp nối về sách đang xem và chỉ cần thông tin như tác giả, năm, thể loại: context4.
+- Nếu hỏi sách khác, tìm sách hoặc gợi ý sách và cần nội dung: agent4,agent5.
+- Nếu hỏi sách khác, tìm sách hoặc gợi ý sách và chỉ cần thông tin sách: agent4.
+- Nếu không liên quan đến sách: none.
+Không suy diễn câu hỏi mới thành câu hỏi tiếp nối khi nó đổi chủ đề. Chỉ trả về đúng một nhãn.
 """
 # =========================
 # agent4
@@ -101,8 +98,8 @@ def ask_agent4(user_question: str, books_list: list) -> str:
     )
 
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = generate_text(prompt)
+        return response
     except Exception as e:
         return f"❌ Lỗi khi gọi model: {e}"
 
@@ -110,8 +107,8 @@ def ask_agent4(user_question: str, books_list: list) -> str:
 # agent5
 # =========================
 
-embedding_model_name = "models/text-embedding-004"
-fixed_vector_size = 1024
+embedding_model_name = EMBEDDING_MODEL
+fixed_vector_size = VECTOR_SIZE
 
 # Model suy luận
 
@@ -130,8 +127,8 @@ Câu hỏi: {query}
 def ask_agent5(prompt: str):
     """Gọi model Gemini 2.5 Flash để sinh nội dung (trả raw text)."""
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = generate_text(prompt)
+        return response
     except Exception as e:
         return f"❌ Lỗi khi gọi model: {e}"
 
@@ -139,24 +136,4 @@ def ask_agent5(prompt: str):
 # 🔹 HÀM TẠO EMBEDDING (giữ nguyên logic pad/cut + norm)
 # ===========================================
 def get_gemini_embedding(texts):
-    """Sinh embedding từ Gemini, cắt/pad về fixed_vector_size = 1024, chuẩn hóa."""
-    if isinstance(texts, str):
-        texts = [texts]
-    embeddings = []
-    for i in range(0, len(texts), 50):
-        batch = texts[i:i+50]
-        try:
-            res = genai.embed_content(model=embedding_model_name, content=batch)
-            for emb in res["embedding"]:
-                if len(emb) > fixed_vector_size:
-                    emb = emb[:fixed_vector_size]
-                elif len(emb) < fixed_vector_size:
-                    emb += [0.0] * (fixed_vector_size - len(emb))
-                emb = np.array(emb, dtype=np.float32)
-                norm = np.linalg.norm(emb)
-                if norm > 0:
-                    emb /= norm
-                embeddings.append(emb.tolist())
-        except Exception:
-            embeddings.extend([[0.0] * fixed_vector_size] * len(batch))
-    return embeddings
+    return embed_texts(texts)

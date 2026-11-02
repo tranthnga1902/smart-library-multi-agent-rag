@@ -26,13 +26,15 @@ Cách này **tự động**:
    - Docker
    - Docker Compose
 
-2. Mở file `docker-compose.yml` và điền API Key:
+2. Thiết lập API key của OpenAI trong môi trường:
 
-```yml
-GEMINI_API_KEY: "YOUR_API_KEY_HERE"
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
 ```
 
-> 🔑 API Key lấy từ **Google Gemini API**
+> 🔑 Tạo API key tại [OpenAI Platform](https://platform.openai.com/api-keys). Khi dùng Docker Compose, truyền biến `OPENAI_API_KEY` từ môi trường máy chủ. Có thể chọn mô hình trả lời bằng `OPENAI_MODEL` (mặc định `gpt-4.1-mini`).
+
+> Embedding cũ từ Gemini không tương thích với OpenAI. Bảng vector hiện dùng mảng số PostgreSQL, không yêu cầu extension `pgvector`.
 
 ---
 
@@ -60,7 +62,7 @@ Kết nối Database thành công
 
 ---
 
-## 🛠 Cách 2: Chạy thủ công (Khi Docker thất bại)
+## 🛠 Chạy trực tiếp trên Windows
 
 Áp dụng khi bạn **không sử dụng Docker**.
 
@@ -68,44 +70,67 @@ Kết nối Database thành công
 
 ### Bước 1: Cài đặt thư viện Python
 
-```bash
-pip install -r requirements.txt
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 ---
 
 ### Bước 2: Thiết lập Database
 
-1. Cài **PostgreSQL 15 hoặc 16**
-2. Cài extension **pgvector**
-3. Tạo database:
+Đặt thông tin kết nối và API key trong file `.env` (không commit file này):
+
+```text
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=booksdb
+DB_USER=postgres
+DB_PASS=mật-khẩu-postgres-của-bạn
+OPENAI_API_KEY=khóa-openai-của-bạn
+```
+
+Để nhập 100 dòng metadata từ CSV vào PostgreSQL cục bộ, chạy:
+
+```powershell
+.\.venv\Scripts\python.exe import_csv.py
+```
+
+Script cập nhật theo cột `id` của CSV nên có thể chạy lại mà không tạo bản ghi trùng. Bảng `books_metadata` không cần OpenAI API key.
+
+1. Cài **PostgreSQL** và kiểm tra dịch vụ đang chạy trên cổng 5432
+2. Tạo database:
 
 ```sql
 CREATE DATABASE booksdb;
 ```
 
-4. Khởi tạo Vector Database:
+3. Tạo vector từ các trang Wikipedia trong CSV:
 
-```bash
-python vectordb.py
+```powershell
+.\.venv\Scripts\python.exe vectordb.py
 ```
+
+Script lưu embedding 1024 chiều dưới dạng `DOUBLE PRECISION[]` trong bảng `books_vector`, có thể chạy lại để tiếp tục các sách chưa được lập chỉ mục. Tìm kiếm dùng cosine similarity trên các vector của sách được hỏi. Có thể chạy `app.py` trước bước này; Agent 5 sẽ tự lập chỉ mục sách khi được hỏi về nội dung.
 
 ---
 
 ## 🚀 QUY TRÌNH KHỞI ĐỘNG ỨNG DỤNG
 
-> Áp dụng sau khi **Database đã sẵn sàng** (Docker hoặc thủ công)
+> Áp dụng sau khi PostgreSQL cục bộ và bảng `books_metadata` đã sẵn sàng. Bảng `books_vector` được tạo tự động khi lập chỉ mục.
 
-### 1️⃣ Chạy Tool hỗ trợ (Agent 4 Tool)
+### Tùy chọn: chạy API quản lý vector
 
-```bash
-python infrastructure/tool4.py
+```powershell
+.\.venv\Scripts\python.exe -m infrastructure.tool4
 ```
 
-### 2️⃣ Chạy ứng dụng chính (Flask API & Smart Agent)
+### Chạy ứng dụng chính (Flask API & Smart Agent)
 
-```bash
-python app.py
+Ứng dụng đọc danh sách sách trực tiếp từ PostgreSQL; không cần chạy API quản lý vector ở cổng 5000.
+
+```powershell
+.\.venv\Scripts\python.exe app.py
 ```
 
 ---
@@ -116,7 +141,7 @@ python app.py
 flask
 flasgger
 psycopg2-binary
-google-generativeai
+openai
 langgraph
 requests
 beautifulsoup4
@@ -134,7 +159,7 @@ matplotlib
 - 🌐 **Host DB**:
   - Docker: `host = db`
   - Chạy thủ công: đổi thành `host = localhost`
-- 🔑 **Gemini API**:
+- 🔑 **OpenAI API**:
   - Lỗi `429` → kiểm tra quota API
 
 ---
@@ -174,7 +199,8 @@ Hệ thống được thiết kế theo **Layered Architecture (4 tầng)**, đ�
 ### Chức năng
 - Planning: Phân tích yêu cầu
 - Orchestration: Điều phối Agent 4 / 5
-- Quản lý trạng thái hội thoại bằng `LangGraph`
+- Dùng OpenAI phân loại ngữ nghĩa câu hỏi và giữ tên sách đang xem cho câu hỏi tiếp nối
+- Điều phối từng lượt bằng `LangGraph`; giao diện gửi kèm tên sách của lượt trước
 
 ---
 
@@ -204,9 +230,9 @@ Hệ thống được thiết kế theo **Layered Architecture (4 tầng)**, đ�
 - Tầng thấp nhất – làm việc với tài nguyên thô
 
 ### Chức năng
-- Cấu hình Gemini Model & Embedding
+- Cấu hình OpenAI Model & Embedding
 - Prompt Templates
-- Kết nối PostgreSQL / pgvector
+- Kết nối PostgreSQL và lưu embedding dạng mảng số
 - Vector Search
 - Web Scraping (Wikipedia)
 

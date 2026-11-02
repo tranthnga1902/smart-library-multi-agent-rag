@@ -1,15 +1,12 @@
 
-import regex as re
-import json, requests  # ⚠️ bỏ chữ "re" ở đây
 from infrastructure.model  import ask_router,prompt1
+from infrastructure.books import fetch_all_books
 # helper: lấy tên sách từ API (lowercase list)
 
 
-def fetch_book_names(api_url="http://127.0.0.1:5000/all_books"):
+def fetch_book_names():
     try:
-        resp = requests.get(api_url, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        data = fetch_all_books()
         names = [ (b.get("book_name") or b.get("tên sách_x") or "").strip().lower() for b in data if (b.get("book_name") or b.get("tên sách_x")) ]
         return list(dict.fromkeys(names))  # bỏ trùng
     except Exception as e:
@@ -25,71 +22,37 @@ class Agent1Logic:
         self.last_book_names = []   # danh sách tên sách detect được (lowercase)
         self.last_topic = None      # chủ đề detect được (string)
 
-    def plan_agents(self, user_input: str):
-        ui = (user_input or "").strip()
-        if not ui:
-            return []
+    def plan_agents(self, user_input: str, context_book_name=None):
+        question = (user_input or "").strip()
+        if not question:
+            return [], None
 
-        ui_low = ui.lower()
-
-        # 1) tìm tên sách chính xác/partial có trong thư viện
-        matched = [n for n in self.book_names if n and n in ui_low]
+        lowered = question.casefold()
+        matched = [name for name in self.book_names if name and name in lowered]
         self.last_book_names = matched
-
-        # 2) nếu không tìm thấy tên sách -> thử detect topic / yêu cầu số lượng
-        if not matched:
-            ui_low = ui_low.strip()
-
-            # 🟢 Detect dạng "của tác giả ..." hoặc "của [tên người]"
-            author_match = re.search(r"của ([\w\s\p{L}]+)", ui_low)
-            if author_match:
-                author = author_match.group(1).strip()
-                self.last_topic = f"tác giả {author}"
-                return ["agent4"]
-
-            # 🟢 Detect dạng "sách của [quốc gia]" hoặc "sách từ [nước]"
-            country_match = re.search(r"(?:của|từ) ([\w\s\p{L}]+)", ui_low)
-            if country_match and any(
-                    word in ui_low for word in
-                    ["quốc gia", "nước", "brazil", "mỹ", "pháp", "anh", "nhật", "trung", "nga"]
-            ):
-                country = country_match.group(1).strip()
-                self.last_topic = f"sách từ {country}"
-                return ["agent4"]
-
-            # 🟡 Các từ khóa theo chủ đề / thể loại (giữ nguyên code cũ)
-            topic_keywords = [
-                "về", "về chủ đề", "về đề tài", "về thể loại", "sách về",
-                "5 cuốn", "5 quyển", "một số", "mấy", "gợi ý", "đề xuất", "liệt kê"
-            ]
-            if any(kw in ui_low for kw in topic_keywords):
-                m = re.search(r"về (.+)", ui_low)
-                topic = None
-                if m:
-                    topic = m.group(1).strip().rstrip(".?!")
-                self.last_topic = topic or ui_low
-                return ["agent4"]
-
-            # không phải sách, không phải yêu cầu chủ đề -> nằm ngoài scope
-            return []
-
-        # 3) nếu có ít nhất 1 tên sách khớp -> gọi router (model) để quyết định có cần agent5
-        from infrastructure.model import ask_router
-
-        route_str = self.ask_router(prompt1.format(user_input=user_input)).strip().lower()
-        if route_str == "none":
-            return []
-
-        required = [r.strip() for r in route_str.split(",") if r.strip() in self.available_agents]
-        if "agent5" in required and "agent4" not in required:
-            required.insert(0, "agent4")
-        # lưu last_topic = None vì user đã hỏi cuốn cụ thể
         self.last_topic = None
-        return required
+        if lowered in self.book_names:
+            return ["agent4"], None
 
-    # --------------------------------------------------
-    # 🔹 TỔNG HỢP KẾT QUẢ
-    # --------------------------------------------------
+        current_book = context_book_name if context_book_name and context_book_name.casefold() in self.book_names else None
+        route = self.ask_router(prompt1.format(
+            user_input=question,
+            current_book=current_book or "none",
+        ))
+        use_context = bool(current_book and not matched and route.startswith("context"))
+        if route == "none":
+            return [], None
+        if route in ("context45", "agent4,agent5"):
+            tasks = ["agent4", "agent5"]
+        elif route in ("context4", "agent4"):
+            tasks = ["agent4"]
+        else:
+            return [], None
+        if not matched and not use_context:
+            self.last_topic = question
+        return tasks, current_book if use_context else None
+
+    # Aggregate the results from selected agents.
     def aggregate_results(self, state: dict):
         results = state.get("results", {})
 

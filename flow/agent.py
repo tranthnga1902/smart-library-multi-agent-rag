@@ -1,3 +1,4 @@
+from infrastructure.openai_client import generate_text
 
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List, Dict, Any
@@ -13,8 +14,8 @@ def ask_agent(prompt: str):
     Gọi model.generate_content() và in ra lỗi thật nếu có.
     """
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = generate_text(prompt)
+        return response
     except Exception as e:
         print("❌ [ask_agent] Lỗi khi gọi model:", repr(e))
         import traceback
@@ -42,6 +43,7 @@ class State(TypedDict, total=False):
     chart_json: Dict[str, Any]
     product_details_json: Dict[str, Any]
     book_name: str
+    context_book_name: str
     top_k: int
 
     terminated: bool  # ✅ thêm cờ báo kết thúc
@@ -72,7 +74,8 @@ def agent1_node(state: dict, logic: 'Agent1Logic') -> dict:
         # =====================================================
         if not sub_tasks:
             print("🧠 [Agent1] Gọi plan_agents()...")
-            sub_tasks = logic.plan_agents(user_input)
+            sub_tasks, context_book = logic.plan_agents(user_input, state.get("context_book_name"))
+            state["context_book_name"] = context_book
             print(f"📋 [Agent1] plan_agents() trả về: {sub_tasks}")
 
             # ❌ Không có subtask hợp lệ
@@ -89,7 +92,7 @@ def agent1_node(state: dict, logic: 'Agent1Logic') -> dict:
                 return state
 
             # ✅ Kiểm tra có topic hoặc book name
-            has_books = bool(getattr(logic, "last_book_names", []))
+            has_books = bool(getattr(logic, "last_book_names", []) or context_book)
             has_topic = bool(getattr(logic, "last_topic", None))
             if not has_books and not has_topic:
                 msg = "❌ Tôi không tìm được sách hoặc chủ đề nào phù hợp với yêu cầu."
@@ -157,10 +160,12 @@ def agent4_node(state: dict) -> dict:
     results = state.get("results", {})
 
     try:
-        answer = ask_question4(user_input)
+        answer = ask_question4(state.get("context_book_name") or user_input)
     except Exception as e:
         print("⚠️ Lỗi gọi ask_question4:", e)
         answer = {"error": str(e)}
+
+    normalized_list = []
 
     # Reset key
     state.pop("product_details_json", None)

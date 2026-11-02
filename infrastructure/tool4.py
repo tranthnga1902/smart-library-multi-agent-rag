@@ -1,11 +1,16 @@
 from flask import Flask, request, jsonify
 import psycopg2
-import google.generativeai as genai
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=True)
+from infrastructure.openai_client import embed_texts
+from infrastructure.vector_store import index_book
+from infrastructure.books import fetch_all_books
 import os, re, time, requests
 from bs4 import BeautifulSoup
 from flasgger import Swagger
 import socket
-from model import embedding_model_name,fixed_vector_size
+
 app = Flask(__name__)
 swagger = Swagger(app)
 
@@ -31,7 +36,7 @@ import os
 
 # Lấy cấu hình từ biến môi trường (Docker truyền vào)
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "db"),
+    "host": os.getenv("DB_HOST", "localhost"),
     "port": os.getenv("DB_PORT", "5432"),
     "dbname": os.getenv("DB_NAME", "booksdb"),
     "user": os.getenv("DB_USER", "postgres"),
@@ -59,19 +64,8 @@ def semantic_chunk(text, max_len=200):
     return chunks
 
 def get_gemini_embedding(texts):
-    if isinstance(texts, str): texts = [texts]
-    result = genai.embed_content(model=embedding_model_name, content=texts)
-    embeddings = result["embedding"]
-    for emb in embeddings:
-        if len(emb) < fixed_vector_size:
-            emb += [0.0]*(fixed_vector_size - len(emb))
-        elif len(emb) > fixed_vector_size:
-            emb = emb[:fixed_vector_size]
-    return embeddings
+    return embed_texts(texts)
 
-# =========================
-# 🔹 API: THÊM VECTOR
-# =========================
 @app.route("/add_vector", methods=["POST"])
 def add_vector():
     """
@@ -104,28 +98,8 @@ def add_vector():
         return jsonify({"error": "Thiếu book_name hoặc wiki_link"}), 400
 
     try:
-        r = requests.get(wiki_link, headers={"User-Agent": "Mozilla/5.0"})
-        soup = BeautifulSoup(r.text, "html.parser")
-        paragraphs = [p.get_text().strip() for p in soup.find_all("p") if len(p.get_text().strip()) > 50]
-        if not paragraphs:
-            return jsonify({"error": "Không tìm thấy nội dung đủ dài"}), 400
-
-        conn = get_connection()
-        cur = conn.cursor()
-
-        for idx, p in enumerate(paragraphs):
-            chunks = semantic_chunk(p)
-            embeddings = get_gemini_embedding(chunks)
-            for chunk_text, emb in zip(chunks, embeddings):
-                cur.execute("""
-                    INSERT INTO books_vector (book_name, paragraph_index, content, embedding)
-                    VALUES (%s,%s,%s,%s)
-                """, (book_name, idx, chunk_text, emb))
-
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"success": f"Đã thêm {book_name} với {len(paragraphs)} đoạn."})
+        chunks = index_book({"book_name": book_name, "wiki_link": wiki_link})
+        return jsonify({"success": f"Đã lập chỉ mục {book_name} với {chunks} đoạn mới."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -234,28 +208,7 @@ def all_books():
         description: Danh sách tất cả sách
     """
     try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT DISTINCT book_name, author, country, year, genre, title_y, wiki_link, image_link
-            FROM books_vector
-        """)
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-        books = []
-        for r in rows:
-            books.append({
-                "book_name": r[0],
-                "author": r[1],
-                "country": r[2],
-                "year": r[3],
-                "genre": r[4],
-                "title_y": r[5],
-                "wiki_link": r[6],
-                "image_link": r[7]
-            })
-        return jsonify(books)
+        return jsonify(fetch_all_books())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

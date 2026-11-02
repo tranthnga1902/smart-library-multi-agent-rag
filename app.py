@@ -1,4 +1,10 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
+
+load_dotenv(Path(__file__).with_name(".env"), override=True)
+
 from flow.agent import app as agent_app
 import traceback, json
 
@@ -11,8 +17,12 @@ def index():
 @flask_app.route("/ask", methods=["POST"])
 def ask():
     try:
-        user_input = request.json.get("message")
-        result = agent_app.invoke({"user_input": user_input})
+        user_input = (request.json or {}).get("message", "").strip().rstrip("\\").strip()
+        book_name = (request.json or {}).get("book_name")
+        result = agent_app.invoke({
+            "user_input": user_input,
+            "context_book_name": book_name if isinstance(book_name, str) else None,
+        })
 
         # 🔍 In ra dữ liệu thô mà agent trả về
         print("\n================= 🧠 RAW AGENT RESULT =================")
