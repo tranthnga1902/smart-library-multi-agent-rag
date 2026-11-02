@@ -5,6 +5,16 @@ có thể xem trực tiếp thao tác  cài đặt bằng file demo.pptx
 
 Tài liệu này hướng dẫn **cách vận hành** và **kiến trúc hệ thống Agent Sách**, được biên soạn theo chuẩn `README.md`, dễ dàng import và trình bày lại bằng **Canva Markdown**.
 
+### 🖼 Giao diện demo
+
+**Tìm sách theo tên** — hệ thống trả về thông tin chi tiết và ảnh bìa:
+
+![Tìm sách theo tên](docs/images/demo-tim-sach.png)
+
+**Hỏi nội dung sách** — hệ thống truy xuất nội dung (RAG) và tóm tắt câu trả lời:
+
+![Hỏi nội dung sách](docs/images/demo-hoi-noi-dung.png)
+
 ---
 
 ## 🚀 HƯỚNG DẪN VẬN HÀNH HỆ THỐNG
