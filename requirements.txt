@@ -1,5 +1,6 @@
 # --- Core Frameworks ---
 flask
+gunicorn
 flasgger
 openai
 langgraph

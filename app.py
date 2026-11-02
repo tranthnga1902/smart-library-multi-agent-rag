@@ -62,8 +62,7 @@ def ask():
         print("❌ Lỗi Flask khi gọi Agent:")
         traceback.print_exc()
         return jsonify({
-            "output": f"❌ Lỗi hệ thống: {e or 'Không rõ lỗi (rỗng)'}",
-            "error": traceback.format_exc()
+            "output": f"❌ Lỗi hệ thống: {e or 'Không rõ lỗi (rỗng)'}"
         }), 500
 
 
