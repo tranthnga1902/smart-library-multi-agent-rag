@@ -5,6 +5,12 @@ có thể xem trực tiếp thao tác  cài đặt bằng file demo.pptx
 
 Tài liệu này hướng dẫn **cách vận hành** và **kiến trúc hệ thống Agent Sách**, được biên soạn theo chuẩn `README.md`, dễ dàng import và trình bày lại bằng **Canva Markdown**.
 
+### 🌐 Dùng thử trực tuyến
+
+👉 **https://smart-library-multi-agent-rag.onrender.com**
+
+> Bản miễn phí trên Render: lần truy cập đầu sau thời gian không có người dùng có thể mất 30–60 giây để khởi động.
+
 ### 🖼 Giao diện demo
 
 **Tìm sách theo tên** — hệ thống trả về thông tin chi tiết và ảnh bìa:
